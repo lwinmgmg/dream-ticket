@@ -1,0 +1,8 @@
+poetry.lock
+.vscode
+.python-version
+.venv
+*.log
+*.pyc
+**/*.pyc
+*__pycache__
