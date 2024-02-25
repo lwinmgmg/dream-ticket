@@ -23,7 +23,6 @@ class TimingMiddleware(BaseHTTPMiddleware):
             case LogType.DEBUG:
                 _logger.debug(mesg)
             case LogType.INFO:
-                print(mesg)
                 _logger.info(mesg)
             case LogType.WARNING:
                 _logger.warning(mesg)
