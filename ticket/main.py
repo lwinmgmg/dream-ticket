@@ -11,7 +11,7 @@ from strawberry.asgi import GraphQL
 from ticket.services.engine import get_pg_engine
 from ticket.services.db_loader import DbLoader
 from ticket.middlewares.timing import TimingMiddleware, LogType
-from ticket.middlewares.db_session import DbSessionMiddleware
+from ticket.models.ticket import Base
 from ticket.schemas.query import Query
 
 logger = logging.getLogger(__name__)
@@ -24,9 +24,16 @@ class GraphQlContext(GraphQL):
 schema = strawberry.Schema(Query)
 graphql_app = GraphQlContext(schema=schema)
 app = Starlette()
+engine = get_pg_engine(host="localhost", port=5432, user="lwinmgmg", password="frontiir", database="ticket")
+
+@app.on_event("startup")
+async def db_load():
+    async with engine.connect() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        await conn.commit()
 
 app.add_middleware(TimingMiddleware, log_type=LogType.INFO)
-DbLoader(app=app, key="db", engine=get_pg_engine(host="0.0.0.0", port=5432, user="admin", password="admin", database="ticket"))
+DbLoader(app=app, key="db", engine=engine)
 app.add_middleware(CORSMiddleware, allow_origins=['*'])
 
-app.add_route("/graphql", graphql_app)
+app.add_route("/graphql", graphql_app) # type: ignore

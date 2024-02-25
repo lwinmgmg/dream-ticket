@@ -1,6 +1,6 @@
 from typing import List
 import strawberry
-from .ticket import TicketGql, get_tickets, TicketLineGql
+from .ticket import TicketGql, get_tickets
 
 @strawberry.type
 class Query:
