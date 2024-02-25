@@ -1,5 +1,5 @@
 import strawberry
-from .ticket import TicketGql, TicketLineGql
+from .ticket import TicketGql
 
 
 @strawberry.type
