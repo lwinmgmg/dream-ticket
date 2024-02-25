@@ -1,5 +1,6 @@
+from enum import Enum
 from typing import List
-from sqlalchemy import String, ForeignKey, select
+from sqlalchemy import String, Text, ForeignKey, select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
@@ -8,12 +9,19 @@ from sqlalchemy.orm import relationship
 from .models import Base
 from .filter import Filter
 
+class TicketState(Enum):
+    DRAFT = "draft"
+    POSTED = "posted"
+    DONE = "done"
 
 class Ticket(Base):
     __tablename__ = "ticket"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(30))
+    state: Mapped[TicketState] = mapped_column(index=True)
+    description: Mapped[str] = mapped_column(Text(500))
+
 
     line_ids: Mapped[List["TicketLine"]] = relationship(
         back_populates="ticket",
@@ -49,6 +57,10 @@ class Ticket(Base):
         )
         res = await engine.execute(stmt)
         return res.scalars().all()
+
+    async def add_ticket(self, engine: AsyncSession):
+        engine.add(self)
+        await engine.flush()
 
 
 class TicketLine(Base):

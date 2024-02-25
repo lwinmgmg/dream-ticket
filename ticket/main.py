@@ -13,6 +13,7 @@ from ticket.services.db_loader import DbLoader
 from ticket.middlewares.timing import TimingMiddleware, LogType
 from ticket.models.models import Base
 from ticket.schemas.query import Query
+from ticket.schemas.mutation import Mutation
 
 logger = logging.getLogger(__name__)
 logger.propagate = False
@@ -21,10 +22,10 @@ class GraphQlContext(GraphQL):
     async def get_context(self, request: Union[Request, WebSocket], response: Optional[Response] = None):
         return {"db": request.app.state.db, "db_session": request.scope.get("db_session")}
 
-schema = strawberry.Schema(Query)
+schema = strawberry.Schema(Query, mutation=Mutation)
 graphql_app = GraphQlContext(schema=schema)
 app = Starlette()
-engine = get_pg_engine(host="0.0.0.0", port=5432, user="admin", password="admin", database="ticket")
+engine = get_pg_engine(host="localhost", port=5432, user="lwinmgmg", password="frontiir", database="ticket")
 
 @app.on_event("startup")
 async def db_load():
