@@ -8,6 +8,11 @@ from ticket.models.ticket import Ticket, TicketState, TicketLine, TicketLineStat
 from ticket.models.filter import Filter
 
 
+class NoIdForUpdate(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
 async def get_lines_for_ticket(info: Info, root: "TicketGql") -> List["TicketLineGql"]:
     session: AsyncSession = info.context.get("db_session")
     return [
@@ -88,6 +93,17 @@ class TicketGql:
         new_record = Ticket(**data)
         await new_record.add_ticket(engine=session)
         return TicketGql.parse_obj(new_record)
+
+    @staticmethod
+    async def update_ticket(info: Info, data_list: JSON) -> List["TicketGql"]:
+        session: AsyncSession = info.context.get("db_session")
+        for data in data_list:
+            if not data.get("id"):
+                raise NoIdForUpdate("No id found for update ticket")
+        return [
+            TicketGql.parse_obj(tkt)
+            for tkt in await Ticket.update_ticket(engine=session, data_list=data_list)
+        ]
 
 
 async def get_ticket_for_line(info: Info, root: "TicketLineGql") -> TicketGql:

@@ -1,6 +1,6 @@
 from enum import Enum
-from typing import List
-from sqlalchemy import String, Integer, Float, Text, Boolean, ForeignKey, select
+from typing import Dict, List
+from sqlalchemy import String, Integer, Float, Text, Boolean, ForeignKey, select, update
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
@@ -82,6 +82,16 @@ class Ticket(Base):
             records.append(TicketLine(number=idx, ticket_id=self.id))
         engine.add_all(records)
         return records
+
+    @classmethod
+    async def update_ticket(
+        cls, engine: AsyncSession, data_list: List[Dict[str, str]]
+    ) -> List["Ticket"]:
+        output = []
+        for data in data_list:
+            await engine.execute(update(Ticket).returning(Ticket), data)
+            output.append(await cls.get_ticket_by_id(data.get("id"), engine=engine))
+        return output
 
 
 @strawberry.enum
