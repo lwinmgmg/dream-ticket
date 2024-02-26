@@ -5,6 +5,7 @@ from ticket.middlewares.db_session import DbSessionMiddleware
 
 _logger = logging.getLogger(__name__)
 
+
 class DbLoader:
     def __init__(self, app: Starlette, key: str, engine: AsyncEngine) -> None:
         self.app = app

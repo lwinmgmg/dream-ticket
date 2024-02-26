@@ -4,11 +4,14 @@ from enum import Enum
 from starlette.middleware.base import BaseHTTPMiddleware
 
 _logger = logging.getLogger(__name__)
+
+
 class LogType(Enum):
     DEBUG = "debug"
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
+
 
 class TimingMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, log_type: LogType = LogType.INFO):
