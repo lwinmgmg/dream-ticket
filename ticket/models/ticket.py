@@ -8,7 +8,7 @@ from sqlalchemy.orm import relationship
 import strawberry
 
 from .models import Base
-from .filter import Filter
+from .filter import Filter, WhereOptr
 
 
 @strawberry.enum
@@ -87,11 +87,16 @@ class Ticket(Base):
     async def update_ticket(
         cls, engine: AsyncSession, data_list: List[Dict[str, str]]
     ) -> List["Ticket"]:
-        output = []
-        for data in data_list:
-            await engine.execute(update(Ticket).returning(Ticket), data)
-            output.append(await cls.get_ticket_by_id(data.get("id"), engine=engine))
-        return output
+        await engine.execute(update(Ticket), data_list)
+        return await cls.get_tickets_query(
+            engine=engine,
+            query=Filter(
+                domain=[
+                    ("id", WhereOptr.IN.value, [data.get("id") for data in data_list])
+                ],
+                limit=len(data_list),
+            ),
+        )
 
 
 @strawberry.enum
@@ -141,3 +146,35 @@ class TicketLine(Base):
         stmt = select(cls).order_by(cls.id)
         res = await engine.execute(stmt)
         return res.scalars().all()
+
+    @classmethod
+    async def get_ticket_lines_query(
+        cls, engine: AsyncEngine | AsyncSession, query: Filter
+    ) -> List["TicketLine"]:
+        stmt = query.prepare_where(stmt=select(cls), model=TicketLine)
+        stmt = (
+            stmt.order_by(*query.prepare_order(TicketLine))
+            .limit(query.limit)
+            .offset(query.offset)
+        )
+        res = await engine.execute(stmt)
+        return res.scalars().all()
+
+    async def add_ticket_line(self, engine: AsyncSession):
+        engine.add(self)
+        await engine.flush()
+
+    @classmethod
+    async def update_ticket_line(
+        cls, engine: AsyncSession, data_list: List[Dict[str, str]]
+    ) -> List["TicketLine"]:
+        await engine.execute(update(TicketLine), data_list)
+        return await cls.get_ticket_lines_query(
+            engine=engine,
+            query=Filter(
+                domain=[
+                    ("id", WhereOptr.IN.value, [data.get("id") for data in data_list])
+                ],
+                limit=len(data_list),
+            ),
+        )

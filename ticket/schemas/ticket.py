@@ -142,3 +142,20 @@ class TicketLineGql:
             special_price=model.special_price,
             state=model.state,
         )
+
+    @staticmethod
+    async def get_ticket_lines_query(
+        info: Info,
+        domain: Optional[JSON],
+        order: Optional[JSON],
+        limit: Optional[int] = 10,
+        offset: Optional[int] = 0,
+    ) -> List["TicketLineGql"]:
+        session: AsyncSession = info.context.get("db_session")
+        return [
+            TicketLineGql.parse_obj(tkt)
+            for tkt in await TicketLine.get_ticket_lines_query(
+                engine=session,
+                query=Filter(domain=domain, order=order, limit=limit, offset=offset),
+            )
+        ]

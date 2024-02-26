@@ -13,3 +13,6 @@ class Query:
     ticket_lines: List[TicketLineGql] = strawberry.field(
         resolver=TicketLineGql.get_ticket_lines
     )
+    ticket_line_query: List[TicketLineGql] = strawberry.field(
+        resolver=TicketLineGql.get_ticket_lines_query
+    )
