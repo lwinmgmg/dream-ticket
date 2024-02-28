@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Dict, List
 from sqlalchemy import String, Integer, Float, Text, Boolean, ForeignKey, select, update
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
@@ -40,22 +40,20 @@ class Ticket(Base):
         return f"Ticket(id={self.id!r}, name={self.name!r})"
 
     @classmethod
-    async def get_ticket_by_id(
-        cls, id: int, engine: AsyncEngine | AsyncSession
-    ) -> "Ticket":
+    async def get_ticket_by_id(cls, id: int, engine: AsyncSession) -> "Ticket":
         stmt = select(cls).where(cls.id == id)
         res = await engine.execute(stmt)
         return res.scalar_one()
 
     @classmethod
-    async def get_tickets(cls, engine: AsyncEngine | AsyncSession) -> List["Ticket"]:
+    async def get_tickets(cls, engine: AsyncSession) -> List["Ticket"]:
         stmt = select(cls).order_by(cls.id)
         res = await engine.execute(stmt)
         return res.scalars().all()
 
     @classmethod
     async def get_tickets_query(
-        cls, engine: AsyncEngine | AsyncSession, query: Filter
+        cls, engine: AsyncSession, query: Filter
     ) -> List["Ticket"]:
         stmt = query.prepare_where(stmt=select(cls), model=Ticket)
         stmt = (
@@ -124,32 +122,28 @@ class TicketLine(Base):
         return f"TicketLine(id={self.id!r}, name={self.number})"
 
     @classmethod
-    async def get_ticket_line_by_id(
-        cls, id: int, engine: AsyncEngine | AsyncSession
-    ) -> "Ticket":
+    async def get_ticket_line_by_id(cls, id: int, engine: AsyncSession) -> "TicketLine":
         stmt = select(cls).where(cls.id == id)
         res = await engine.execute(stmt)
         return res.scalar_one()
 
     @classmethod
     async def get_ticket_line_by_tid(
-        cls, ticket_id: int, engine: AsyncEngine | AsyncSession
+        cls, ticket_id: int, engine: AsyncSession
     ) -> List["TicketLine"]:
         stmt = select(cls).where(cls.ticket_id == ticket_id)
         res = await engine.execute(stmt)
         return res.scalars().all()
 
     @classmethod
-    async def get_ticket_lines(
-        cls, engine: AsyncEngine | AsyncSession
-    ) -> List["TicketLine"]:
+    async def get_ticket_lines(cls, engine: AsyncSession) -> List["TicketLine"]:
         stmt = select(cls).order_by(cls.id)
         res = await engine.execute(stmt)
         return res.scalars().all()
 
     @classmethod
     async def get_ticket_lines_query(
-        cls, engine: AsyncEngine | AsyncSession, query: Filter
+        cls, engine: AsyncSession, query: Filter
     ) -> List["TicketLine"]:
         stmt = query.prepare_where(stmt=select(cls), model=TicketLine)
         stmt = (

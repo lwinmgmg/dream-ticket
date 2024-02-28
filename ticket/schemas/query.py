@@ -1,5 +1,7 @@
 from typing import List
 import strawberry
+
+from .order import OrderGql, OrderLineGql
 from .ticket import TicketGql, TicketLineGql
 
 
@@ -15,4 +17,10 @@ class Query:
     )
     ticket_line_query: List[TicketLineGql] = strawberry.field(
         resolver=TicketLineGql.get_ticket_lines_query
+    )
+
+    orders: List[OrderGql] = strawberry.field(resolver=OrderGql.get_orders)
+
+    order_lines: List[OrderLineGql] = strawberry.field(
+        resolver=OrderLineGql.get_order_lines
     )

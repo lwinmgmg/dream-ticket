@@ -29,7 +29,7 @@ class Filter(BaseModel):
     offset: Optional[int] = 0
     order: Optional[Dict[str, str]] = {}
 
-    def prepare_where(self, stmt: Select, model: Base) -> Select:
+    def prepare_where(self, stmt: Select, model: type[Base]) -> Select:
         for k, optr, v in self.domain:
             if not hasattr(model, k):
                 continue
@@ -64,7 +64,7 @@ class Filter(BaseModel):
                     stmt = stmt.where(getattr(model, k).not_like(v))
         return stmt
 
-    def prepare_order(self, model: Base):
+    def prepare_order(self, model: type[Base]):
         output = []
         for k, v in self.order.items():
             if not hasattr(model, k):
