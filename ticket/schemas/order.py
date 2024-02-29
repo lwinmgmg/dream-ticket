@@ -40,7 +40,7 @@ class OrderGql:
         )
 
     @staticmethod
-    async def get_records(info: Info) -> List["OrderGql"]:
+    async def get_orders(info: Info) -> List["OrderGql"]:
         session: AsyncSession = info.context.get("db_session")
         return [
             OrderGql.parse_obj(odr) for odr in await Order.get_records(engine=session)
