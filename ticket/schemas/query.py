@@ -19,7 +19,7 @@ class Query:
         resolver=TicketLineGql.get_ticket_lines_query
     )
 
-    orders: List[OrderGql] = strawberry.field(resolver=OrderGql.get_orders)
+    orders: List[OrderGql] = strawberry.field(resolver=OrderGql.get_records)
 
     order_lines: List[OrderLineGql] = strawberry.field(
         resolver=OrderLineGql.get_order_lines

@@ -1,14 +1,13 @@
 from enum import Enum
-from typing import Dict, List
-from sqlalchemy import String, Integer, Float, Text, Boolean, ForeignKey, select, update
+from typing import List
+from sqlalchemy import String, Integer, Float, Text, Boolean, ForeignKey, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
 import strawberry
 
-from .models import Base
-from .filter import Filter, WhereOptr
+from .models import Base, CommonModel
 
 
 @strawberry.enum
@@ -18,7 +17,7 @@ class TicketState(Enum):
     DONE = "done"
 
 
-class Ticket(Base):
+class Ticket(Base, CommonModel):
     __tablename__ = "ticket"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -39,36 +38,6 @@ class Ticket(Base):
     def __repr__(self) -> str:
         return f"Ticket(id={self.id!r}, name={self.name!r})"
 
-    @classmethod
-    async def get_ticket_by_id(cls, id: int, engine: AsyncSession) -> "Ticket":
-        stmt = select(cls).where(cls.id == id)
-        res = await engine.execute(stmt)
-        return res.scalar_one()
-
-    @classmethod
-    async def get_tickets(cls, engine: AsyncSession) -> List["Ticket"]:
-        stmt = select(cls).order_by(cls.id)
-        res = await engine.execute(stmt)
-        return res.scalars().all()
-
-    @classmethod
-    async def get_tickets_query(
-        cls, engine: AsyncSession, query: Filter
-    ) -> List["Ticket"]:
-        stmt = query.prepare_where(stmt=select(cls), model=Ticket)
-        stmt = (
-            stmt.order_by(*query.prepare_order(Ticket))
-            .limit(query.limit)
-            .offset(query.offset)
-        )
-        res = await engine.execute(stmt)
-        return res.scalars().all()
-
-    async def add_ticket(self, engine: AsyncSession):
-        engine.add(self)
-        await self.create_lines(engine=engine)
-        await engine.flush()
-
     async def create_lines(self, engine: AsyncSession) -> List["TicketLine"]:
         stmt = select(TicketLine)
         res = await engine.execute(stmt)
@@ -81,21 +50,6 @@ class Ticket(Base):
         engine.add_all(records)
         return records
 
-    @classmethod
-    async def update_ticket(
-        cls, engine: AsyncSession, data_list: List[Dict[str, str]]
-    ) -> List["Ticket"]:
-        await engine.execute(update(Ticket), data_list)
-        return await cls.get_tickets_query(
-            engine=engine,
-            query=Filter(
-                domain=[
-                    ("id", WhereOptr.IN.value, [data.get("id") for data in data_list])
-                ],
-                limit=len(data_list),
-            ),
-        )
-
 
 @strawberry.enum
 class TicketLineState(Enum):
@@ -104,7 +58,7 @@ class TicketLineState(Enum):
     SOLD = "sold"
 
 
-class TicketLine(Base):
+class TicketLine(Base, CommonModel):
     __tablename__ = "ticket_line"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -122,53 +76,9 @@ class TicketLine(Base):
         return f"TicketLine(id={self.id!r}, name={self.number})"
 
     @classmethod
-    async def get_ticket_line_by_id(cls, id: int, engine: AsyncSession) -> "TicketLine":
-        stmt = select(cls).where(cls.id == id)
-        res = await engine.execute(stmt)
-        return res.scalar_one()
-
-    @classmethod
     async def get_ticket_line_by_tid(
         cls, ticket_id: int, engine: AsyncSession
     ) -> List["TicketLine"]:
         stmt = select(cls).where(cls.ticket_id == ticket_id)
         res = await engine.execute(stmt)
         return res.scalars().all()
-
-    @classmethod
-    async def get_ticket_lines(cls, engine: AsyncSession) -> List["TicketLine"]:
-        stmt = select(cls).order_by(cls.id)
-        res = await engine.execute(stmt)
-        return res.scalars().all()
-
-    @classmethod
-    async def get_ticket_lines_query(
-        cls, engine: AsyncSession, query: Filter
-    ) -> List["TicketLine"]:
-        stmt = query.prepare_where(stmt=select(cls), model=TicketLine)
-        stmt = (
-            stmt.order_by(*query.prepare_order(TicketLine))
-            .limit(query.limit)
-            .offset(query.offset)
-        )
-        res = await engine.execute(stmt)
-        return res.scalars().all()
-
-    async def add_ticket_line(self, engine: AsyncSession):
-        engine.add(self)
-        await engine.flush()
-
-    @classmethod
-    async def update_ticket_line(
-        cls, engine: AsyncSession, data_list: List[Dict[str, str]]
-    ) -> List["TicketLine"]:
-        await engine.execute(update(TicketLine), data_list)
-        return await cls.get_ticket_lines_query(
-            engine=engine,
-            query=Filter(
-                domain=[
-                    ("id", WhereOptr.IN.value, [data.get("id") for data in data_list])
-                ],
-                limit=len(data_list),
-            ),
-        )

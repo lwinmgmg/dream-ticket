@@ -5,7 +5,7 @@ from strawberry.types import Info
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ticket.models.filter import Filter
+from ticket.models.models import Filter
 from ticket.models.ticket import TicketLine
 from ticket.models.order import OrderState, Order, OrderLine
 
@@ -40,10 +40,10 @@ class OrderGql:
         )
 
     @staticmethod
-    async def get_orders(info: Info) -> List["OrderGql"]:
+    async def get_records(info: Info) -> List["OrderGql"]:
         session: AsyncSession = info.context.get("db_session")
         return [
-            OrderGql.parse_obj(odr) for odr in await Order.get_orders(engine=session)
+            OrderGql.parse_obj(odr) for odr in await Order.get_records(engine=session)
         ]
 
     @staticmethod
@@ -57,7 +57,7 @@ class OrderGql:
         session: AsyncSession = info.context.get("db_session")
         return [
             OrderGql.parse_obj(tkt)  # type: ignore
-            for tkt in await Order.get_orders_query(
+            for tkt in await Order.get_records_query(
                 engine=session,
                 query=Filter(
                     domain=domain,  # type: ignore
@@ -72,7 +72,7 @@ class OrderGql:
 async def get_order_for_order_line(info: Info, root: "OrderLineGql") -> OrderGql:
     session: AsyncSession = info.context.get("db_session")
     return OrderGql.parse_obj(
-        await Order.get_order_by_id(id=root.order_id, engine=session)
+        await Order.get_record_by_id(id=root.order_id, engine=session)
     )
 
 
@@ -81,7 +81,7 @@ async def get_ticket_line_for_order_line(
 ) -> TicketLineGql:
     session: AsyncSession = info.context.get("db_session")
     return TicketLineGql.parse_obj(
-        await TicketLine.get_ticket_line_by_id(id=root.ticket_line_id, engine=session)
+        await TicketLine.get_record_by_id(id=root.ticket_line_id, engine=session)
     )
 
 
@@ -108,5 +108,5 @@ class OrderLineGql:
         session: AsyncSession = info.context.get("db_session")
         return [
             OrderLineGql.parse_obj(odr)
-            for odr in await OrderLine.get_order_lines(engine=session)
+            for odr in await OrderLine.get_records(engine=session)
         ]

@@ -1,4 +1,4 @@
-from ticket.models.filter import Filter
+from ticket.models.models import Filter
 
 
 def test_filter():

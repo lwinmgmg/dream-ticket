@@ -5,7 +5,7 @@ from strawberry.scalars import JSON
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ticket.models.ticket import Ticket, TicketState, TicketLine, TicketLineState
-from ticket.models.filter import Filter
+from ticket.models.models import Filter
 
 
 class NoIdForUpdate(Exception):
@@ -56,14 +56,14 @@ class TicketGql:
     async def get_tickets(info: Info) -> List["TicketGql"]:
         session: AsyncSession = info.context.get("db_session")
         return [
-            TicketGql.parse_obj(tkt) for tkt in await Ticket.get_tickets(engine=session)
+            TicketGql.parse_obj(tkt) for tkt in await Ticket.get_records(engine=session)
         ]
 
     @staticmethod
     async def get_ticket(info: Info, id: strawberry.ID) -> "TicketGql":
         session: AsyncSession = info.context.get("db_session")
         return TicketGql.parse_obj(
-            await Ticket.get_ticket_by_id(id=int(id), engine=session)
+            await Ticket.get_record_by_id(id=int(id), engine=session)
         )
 
     @staticmethod
@@ -77,7 +77,7 @@ class TicketGql:
         session: AsyncSession = info.context.get("db_session")
         return [
             TicketGql.parse_obj(tkt)  # type: ignore
-            for tkt in await Ticket.get_tickets_query(
+            for tkt in await Ticket.get_records_query(
                 engine=session,
                 query=Filter(
                     domain=domain, order=order, limit=limit, offset=offset
@@ -91,7 +91,7 @@ class TicketGql:
         if "state" in data:
             data["state"] = getattr(TicketState, data["state"])
         new_record = Ticket(**data)
-        await new_record.add_ticket(engine=session)
+        await new_record.add_record(engine=session)
         return TicketGql.parse_obj(new_record)
 
     @staticmethod
@@ -102,13 +102,13 @@ class TicketGql:
                 raise NoIdForUpdate("No id found for update ticket")
         return [
             TicketGql.parse_obj(tkt)
-            for tkt in await Ticket.update_ticket(engine=session, data_list=data_list)
+            for tkt in await Ticket.update_records(engine=session, data_list=data_list)
         ]
 
 
 async def get_ticket_for_line(info: Info, root: "TicketLineGql") -> TicketGql:
     session: AsyncSession = info.context.get("db_session")
-    tkt = await Ticket.get_ticket_by_id(id=root.ticket_id, engine=session)
+    tkt = await Ticket.get_record_by_id(id=root.ticket_id, engine=session)
     return TicketGql.parse_obj(tkt)
 
 
@@ -128,7 +128,7 @@ class TicketLineGql:
         session: AsyncSession = info.context.get("db_session")
         return [
             TicketLineGql.parse_obj(tl)
-            for tl in await TicketLine.get_ticket_lines(engine=session)
+            for tl in await TicketLine.get_records(engine=session)
         ]
 
     @classmethod
@@ -154,7 +154,7 @@ class TicketLineGql:
         session: AsyncSession = info.context.get("db_session")
         return [
             TicketLineGql.parse_obj(tkt)
-            for tkt in await TicketLine.get_ticket_lines_query(
+            for tkt in await TicketLine.get_records_query(
                 engine=session,
                 query=Filter(domain=domain, order=order, limit=limit, offset=offset),
             )
