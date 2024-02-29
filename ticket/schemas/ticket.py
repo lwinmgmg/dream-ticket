@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ticket.models.ticket import Ticket, TicketState, TicketLine, TicketLineState
 from ticket.models.models import Filter
 
+from .schemas import CommonSchema
+
 
 class NoIdForUpdate(Exception):
     def __init__(self, *args: object) -> None:
@@ -24,7 +26,10 @@ async def get_lines_for_ticket(info: Info, root: "TicketGql") -> List["TicketLin
 
 
 @strawberry.type
-class TicketGql:
+class TicketGql(CommonSchema):
+    _model_type = Ticket
+    _model_enums = {"state": TicketState}
+
     id: strawberry.ID
     name: str
     state: TicketState
@@ -53,48 +58,6 @@ class TicketGql:
         )
 
     @staticmethod
-    async def get_tickets(info: Info) -> List["TicketGql"]:
-        session: AsyncSession = info.context.get("db_session")
-        return [
-            TicketGql.parse_obj(tkt) for tkt in await Ticket.get_records(engine=session)
-        ]
-
-    @staticmethod
-    async def get_ticket(info: Info, id: strawberry.ID) -> "TicketGql":
-        session: AsyncSession = info.context.get("db_session")
-        return TicketGql.parse_obj(
-            await Ticket.get_record_by_id(id=int(id), engine=session)
-        )
-
-    @staticmethod
-    async def get_tickets_query(
-        info: Info,
-        domain: Optional[JSON],
-        order: Optional[JSON],
-        limit: Optional[int] = 10,
-        offset: Optional[int] = 0,
-    ) -> List["TicketGql"]:
-        session: AsyncSession = info.context.get("db_session")
-        return [
-            TicketGql.parse_obj(tkt)  # type: ignore
-            for tkt in await Ticket.get_records_query(
-                engine=session,
-                query=Filter(
-                    domain=domain, order=order, limit=limit, offset=offset
-                ),  # type: ignore
-            )
-        ]
-
-    @staticmethod
-    async def add_ticket(info: Info, data: JSON) -> "TicketGql":
-        session: AsyncSession = info.context.get("db_session")
-        if "state" in data:
-            data["state"] = getattr(TicketState, data["state"])
-        new_record = Ticket(**data)
-        await new_record.add_record(engine=session)
-        return TicketGql.parse_obj(new_record)
-
-    @staticmethod
     async def update_ticket(info: Info, data_list: JSON) -> List["TicketGql"]:
         session: AsyncSession = info.context.get("db_session")
         for data in data_list:
@@ -113,7 +76,10 @@ async def get_ticket_for_line(info: Info, root: "TicketLineGql") -> TicketGql:
 
 
 @strawberry.type
-class TicketLineGql:
+class TicketLineGql(CommonSchema):
+    _model_type = TicketLine
+    _model_enums = {"state": TicketLineState}
+
     id: strawberry.ID
     number: int
     ticket_id: int
@@ -122,14 +88,6 @@ class TicketLineGql:
     is_special_price: bool
     special_price: float
     state: TicketLineState
-
-    @staticmethod
-    async def get_ticket_lines(info: Info):
-        session: AsyncSession = info.context.get("db_session")
-        return [
-            TicketLineGql.parse_obj(tl)
-            for tl in await TicketLine.get_records(engine=session)
-        ]
 
     @classmethod
     def parse_obj(cls, model: TicketLine) -> "TicketLineGql":
@@ -142,20 +100,3 @@ class TicketLineGql:
             special_price=model.special_price,
             state=model.state,
         )
-
-    @staticmethod
-    async def get_ticket_lines_query(
-        info: Info,
-        domain: Optional[JSON],
-        order: Optional[JSON],
-        limit: Optional[int] = 10,
-        offset: Optional[int] = 0,
-    ) -> List["TicketLineGql"]:
-        session: AsyncSession = info.context.get("db_session")
-        return [
-            TicketLineGql.parse_obj(tkt)
-            for tkt in await TicketLine.get_records_query(
-                engine=session,
-                query=Filter(domain=domain, order=order, limit=limit, offset=offset),
-            )
-        ]
