@@ -5,6 +5,7 @@ from strawberry.types import Info
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ticket.models.filter import Filter
 from ticket.models.ticket import TicketLine
 from ticket.models.order import OrderState, Order, OrderLine
 
@@ -46,7 +47,7 @@ class OrderGql:
         ]
 
     @staticmethod
-    async def get_tickets_query(
+    async def get_order_query(
         info: Info,
         domain: Optional[JSON],
         order: Optional[JSON],
@@ -55,12 +56,15 @@ class OrderGql:
     ) -> List["OrderGql"]:
         session: AsyncSession = info.context.get("db_session")
         return [
-            TicketGql.parse_obj(tkt)  # type: ignore
-            for tkt in await Ticket.get_tickets_query(
+            OrderGql.parse_obj(tkt)  # type: ignore
+            for tkt in await Order.get_orders_query(
                 engine=session,
                 query=Filter(
-                    domain=domain, order=order, limit=limit, offset=offset
-                ),  # type: ignore
+                    domain=domain,  # type: ignore
+                    order=order,  # type: ignore
+                    limit=limit,
+                    offset=offset,
+                ),
             )
         ]
 

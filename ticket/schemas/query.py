@@ -24,3 +24,5 @@ class Query:
     order_lines: List[OrderLineGql] = strawberry.field(
         resolver=OrderLineGql.get_order_lines
     )
+
+    order_query: List[OrderGql] = strawberry.field(resolver=OrderGql.get_order_query)
