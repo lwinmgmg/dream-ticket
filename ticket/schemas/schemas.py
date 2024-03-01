@@ -1,5 +1,7 @@
 from typing import Generic, List, Dict, Optional, Self, TypeVar
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.exceptions import HTTPException
+from starlette import status
 import strawberry
 from strawberry.scalars import JSON
 from strawberry.types import Info
@@ -21,6 +23,15 @@ class CommonSchema(Generic[_MODEL_TYPE, _ENUM_TYPE]):
     _model_type: type[CommonModel] = CommonModel
 
     _model_enums: Dict[str, _ENUM_TYPE] = {}
+
+    @classmethod
+    def get_user(cls, info: Info) -> str:
+        user_code: str = info.context.get("user_code")
+        if not user_code:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
+            )
+        return user_code
 
     @classmethod
     def parse_obj(cls, model: _MODEL_TYPE) -> Self:

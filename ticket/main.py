@@ -27,16 +27,17 @@ class GraphQlContext(GraphQL):
     async def get_context(
         self, request: Union[Request, WebSocket], response: Optional[Response] = None
     ):
-        return {
-            "db": request.app.state.db,
-            "db_session": request.scope.get("db_session"),
-        }
+        res = await super().get_context(request=response, response=response)
+        res["db"] = request.app.state.db
+        res["db_session"] = request.scope.get("db_session")
+        res["user_code"] = "A0000001"
+        return res
 
 
 schema = strawberry.Schema(Query, mutation=Mutation)
 graphql_app = GraphQlContext(schema=schema)
 engine = get_pg_engine(
-    host="localhost", port=5432, user="lwinmgmg", password="frontiir", database="ticket"
+    host="localhost", port=5432, user="admin", password="admin", database="ticket"
 )
 
 
@@ -61,5 +62,4 @@ app = Starlette(lifespan=lifespan)
 app.add_middleware(TimingMiddleware, log_type=LogType.INFO)
 app.add_middleware(DbSessionMiddleware, key=DB_KEY)
 app.add_middleware(CORSMiddleware, allow_origins=["*"])
-
 app.add_route("/graphql", graphql_app)  # type: ignore

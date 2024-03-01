@@ -20,8 +20,12 @@ class TicketState(Enum):
 class Ticket(Base, CommonModel):
     __tablename__ = "ticket"
 
-    id: Mapped[int] = mapped_column(primary_key=True) # pylint: disable=unsubscriptable-object
-    name: Mapped[str] = mapped_column(String(30)) # pylint: disable=unsubscriptable-object
+    id: Mapped[int] = mapped_column(
+        primary_key=True
+    )  # pylint: disable=unsubscriptable-object
+    name: Mapped[str] = mapped_column(
+        String(30)
+    )  # pylint: disable=unsubscriptable-object
     state: Mapped[TicketState] = mapped_column(index=True, default=TicketState.DRAFT)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     start_num: Mapped[int] = mapped_column(Integer, default=0)

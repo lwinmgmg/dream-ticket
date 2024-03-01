@@ -4,6 +4,7 @@ from strawberry.types import Info
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ticket.models.models import Filter
 from ticket.models.ticket import TicketLine
 from ticket.models.order import OrderState, Order, OrderLine
 
@@ -40,6 +41,27 @@ class OrderGql(CommonSchema):
             state=model.state,
             user_code=model.user_code,
         )
+
+    @classmethod
+    async def my_orders(cls, info: Info) -> List["OrderGql"]:
+        user_code = cls.get_user(info=info)
+        session: AsyncSession = info.context.get("db_session")
+        return [
+            OrderGql.parse_obj(odr)
+            for odr in await Order.get_records_query(
+                session,
+                Filter(domain=[("user_code", "=", user_code)], limit=0, offset=0),
+            )
+        ]
+
+    @classmethod
+    async def order_now(
+        cls,
+        # cls, info: Info, ticket_line_ids: List[int]
+    ) -> List["OrderGql"]:
+        # user_code = cls.get_user(info=info)
+        # session: AsyncSession = info.context.get("db_session")
+        return []
 
 
 async def get_order_for_order_line(info: Info, root: "OrderLineGql") -> OrderGql:

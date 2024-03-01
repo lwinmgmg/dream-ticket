@@ -99,11 +99,11 @@ class CommonModel:
     @classmethod
     async def get_records_query(cls, engine: AsyncSession, query: Filter) -> List[Self]:
         stmt = query.prepare_where(stmt=select(cls), model=cls)
-        stmt = (
-            stmt.order_by(*query.prepare_order(cls))
-            .limit(query.limit)
-            .offset(query.offset)
-        )
+        stmt = stmt.order_by(*query.prepare_order(cls))
+        if query.limit:
+            stmt = stmt.limit(query.limit)
+        if query.offset:
+            stmt = stmt.offset(query.offset)
         res = await engine.execute(stmt)
         return res.scalars().all()
 
