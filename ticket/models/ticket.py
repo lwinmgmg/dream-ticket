@@ -39,8 +39,9 @@ class Ticket(Base, CommonModel):
         return f"Ticket(id={self.id!r}, name={self.name!r})"
 
     async def create_lines(self, engine: AsyncSession) -> List["TicketLine"]:
-        stmt = select(TicketLine)
-        res = await engine.execute(stmt)
+        res = await engine.execute(
+            select(TicketLine).where(TicketLine.ticket_id == self.id)
+        )
         records = res.scalars().all()
         if records:
             return records

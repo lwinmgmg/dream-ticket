@@ -1,28 +1,37 @@
-from typing import List, Dict, Optional, Self, TypeVar
+from typing import Generic, List, Dict, Optional, Self, TypeVar
 from sqlalchemy.ext.asyncio import AsyncSession
 import strawberry
 from strawberry.scalars import JSON
 from strawberry.types import Info
 
-from ticket.models.models import Filter
+from ticket.models.models import Filter, CommonModel
 
-MODEL_TYPE = TypeVar("MODEL_TYPE")
-ENUM_TYPE = TypeVar("ENUM_TYPE")
+# pylint: disable = too-many-arguments
 
-class CommonSchema:
-    _model_type: type[MODEL_TYPE] = MODEL_TYPE
+_MODEL_TYPE = TypeVar("_MODEL_TYPE")  # pylint: disable = invalid-name
+_ENUM_TYPE = TypeVar("_ENUM_TYPE")  # pylint: disable = invalid-name
 
-    _model_enums: Dict[str, ENUM_TYPE] = None
+
+class NoIdForUpdate(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
+class CommonSchema(Generic[_MODEL_TYPE, _ENUM_TYPE]):
+    _model_type: type[CommonModel] = CommonModel
+
+    _model_enums: Dict[str, _ENUM_TYPE] = {}
 
     @classmethod
-    def parse_obj(cls, input: MODEL_TYPE) -> Self:
-        ...
+    def parse_obj(cls, model: _MODEL_TYPE) -> Self:
+        return cls(**model)
 
     @classmethod
     async def get_records(cls, info: Info) -> List[Self]:
         session: AsyncSession = info.context.get("db_session")
         return [
-            cls.parse_obj(tkt) for tkt in await cls._model_type.get_records(engine=session)
+            cls.parse_obj(tkt)
+            for tkt in await cls._model_type.get_records(engine=session)
         ]
 
     @classmethod
@@ -44,11 +53,11 @@ class CommonSchema:
         session: AsyncSession = info.context.get("db_session")
         return [
             cls.parse_obj(tkt)  # type: ignore
-            for tkt in await cls._model_type.get_records_query(
+            for tkt in await cls._model_type.get_records_query(  # type: ignore
                 engine=session,
                 query=Filter(
-                    domain=domain, order=order, limit=limit, offset=offset
-                ),  # type: ignore
+                    domain=domain, order=order, limit=limit, offset=offset  # type: ignore
+                ),
             )
         ]
 
@@ -57,7 +66,24 @@ class CommonSchema:
         session: AsyncSession = info.context.get("db_session")
         new_record = cls._model_type(**data)
         await new_record.add_record(engine=session)
-        for enum_field in (cls._model_enums or []):
+        for enum_field in cls._model_enums or []:
             if enum_field in data:
-                setattr(new_record, enum_field, getattr(cls._model_enums[enum_field], data[enum_field]))
+                setattr(
+                    new_record,
+                    enum_field,
+                    getattr(cls._model_enums[enum_field], data[enum_field]),
+                )
         return cls.parse_obj(new_record)
+
+    @classmethod
+    async def update_record(cls, info: Info, data_list: JSON) -> List[Self]:
+        session: AsyncSession = info.context.get("db_session")
+        for data in data_list:
+            if not data.get("id"):
+                raise NoIdForUpdate("No id found for update ticket")
+        return [
+            cls.parse_obj(tkt)
+            for tkt in await cls._model_type.update_records(
+                engine=session, data_list=data_list
+            )
+        ]

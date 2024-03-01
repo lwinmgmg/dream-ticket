@@ -1,14 +1,13 @@
 from typing import List, Optional
 import strawberry
-from strawberry.scalars import JSON
 from strawberry.types import Info
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ticket.models.models import Filter
 from ticket.models.ticket import TicketLine
 from ticket.models.order import OrderState, Order, OrderLine
 
+from .schemas import CommonSchema
 from .ticket import TicketLineGql
 
 
@@ -23,7 +22,10 @@ async def get_order_lines_for_order(
 
 
 @strawberry.type
-class OrderGql:
+class OrderGql(CommonSchema):
+    _model_type = Order
+    _model_enums = {"state": OrderState}
+
     id: strawberry.ID
     name: str
     state: OrderState
@@ -38,35 +40,6 @@ class OrderGql:
             state=model.state,
             user_code=model.user_code,
         )
-
-    @staticmethod
-    async def get_orders(info: Info) -> List["OrderGql"]:
-        session: AsyncSession = info.context.get("db_session")
-        return [
-            OrderGql.parse_obj(odr) for odr in await Order.get_records(engine=session)
-        ]
-
-    @staticmethod
-    async def get_order_query(
-        info: Info,
-        domain: Optional[JSON],
-        order: Optional[JSON],
-        limit: Optional[int] = 10,
-        offset: Optional[int] = 0,
-    ) -> List["OrderGql"]:
-        session: AsyncSession = info.context.get("db_session")
-        return [
-            OrderGql.parse_obj(tkt)  # type: ignore
-            for tkt in await Order.get_records_query(
-                engine=session,
-                query=Filter(
-                    domain=domain,  # type: ignore
-                    order=order,  # type: ignore
-                    limit=limit,
-                    offset=offset,
-                ),
-            )
-        ]
 
 
 async def get_order_for_order_line(info: Info, root: "OrderLineGql") -> OrderGql:
@@ -86,7 +59,10 @@ async def get_ticket_line_for_order_line(
 
 
 @strawberry.type
-class OrderLineGql:
+class OrderLineGql(CommonSchema):
+    _model_type = OrderLine
+    _model_enums = {}
+
     id: strawberry.ID
     order_id: int
     order: OrderGql = strawberry.field(resolver=get_order_for_order_line)
@@ -102,11 +78,3 @@ class OrderLineGql:
             order_id=model.order_id,
             ticket_line_id=model.ticket_line_id,
         )
-
-    @staticmethod
-    async def get_order_lines(info: Info) -> List["OrderLineGql"]:
-        session: AsyncSession = info.context.get("db_session")
-        return [
-            OrderLineGql.parse_obj(odr)
-            for odr in await OrderLine.get_records(engine=session)
-        ]

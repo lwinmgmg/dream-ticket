@@ -1,18 +1,11 @@
 from typing import List, Optional
 import strawberry
 from strawberry.types import Info
-from strawberry.scalars import JSON
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ticket.models.ticket import Ticket, TicketState, TicketLine, TicketLineState
-from ticket.models.models import Filter
 
 from .schemas import CommonSchema
-
-
-class NoIdForUpdate(Exception):
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
 
 
 async def get_lines_for_ticket(info: Info, root: "TicketGql") -> List["TicketLineGql"]:
@@ -56,17 +49,6 @@ class TicketGql(CommonSchema):
             reserved_count=model.reserved_count,
             sold_count=model.sold_count,
         )
-
-    @staticmethod
-    async def update_ticket(info: Info, data_list: JSON) -> List["TicketGql"]:
-        session: AsyncSession = info.context.get("db_session")
-        for data in data_list:
-            if not data.get("id"):
-                raise NoIdForUpdate("No id found for update ticket")
-        return [
-            TicketGql.parse_obj(tkt)
-            for tkt in await Ticket.update_records(engine=session, data_list=data_list)
-        ]
 
 
 async def get_ticket_for_line(info: Info, root: "TicketLineGql") -> TicketGql:

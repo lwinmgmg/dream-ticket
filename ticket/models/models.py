@@ -2,7 +2,7 @@ from typing import Optional, Dict, Tuple, List, Any, Self
 from enum import Enum
 from pydantic import BaseModel
 from sqlalchemy import select, Select, update
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Mapped
 from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession
 
 
@@ -34,7 +34,7 @@ class Filter(BaseModel):
     order: Optional[Dict[str, str]] = {}
 
     def prepare_where(self, stmt: Select, model: type[Base]) -> Select:
-        for k, optr, v in self.domain:
+        for k, optr, v in self.domain or []:
             if not hasattr(model, k):
                 continue
             match optr.lower():
@@ -82,7 +82,7 @@ class Filter(BaseModel):
 
 
 class CommonModel:
-    id: int = None
+    id: Mapped[int]
 
     @classmethod
     async def get_record_by_id(cls, id: int, engine: AsyncSession) -> Self:
@@ -107,10 +107,14 @@ class CommonModel:
         res = await engine.execute(stmt)
         return res.scalars().all()
 
+    async def create_lines(
+        self, engine: AsyncSession  # pylint: disable = unused-argument
+    ) -> List[Any]:
+        return []
+
     async def add_record(self, engine: AsyncSession):
         engine.add(self)
-        if hasattr(self, "create_lines"):
-            await self.create_lines(engine=engine)
+        await self.create_lines(engine=engine)
         await engine.flush()
 
     @classmethod
