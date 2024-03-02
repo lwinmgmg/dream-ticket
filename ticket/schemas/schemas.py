@@ -103,3 +103,8 @@ class CommonSchema(Generic[M, E]):
                 engine=session, data_list=data_list
             )
         ]
+
+    @classmethod
+    async def delete_record(cls, info: Info, ids: List[int]) -> bool:
+        session: AsyncSession = info.context.get("db_session")
+        return await cls._model_type.delete_records(engine=session, ids=ids)

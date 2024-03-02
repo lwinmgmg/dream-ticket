@@ -1,7 +1,7 @@
 from typing import Optional, Dict, Tuple, List, Any, Self
 from enum import Enum
 from pydantic import BaseModel
-from sqlalchemy import select, Select, update
+from sqlalchemy import select, Select, update, delete
 from sqlalchemy.orm import DeclarativeBase, Mapped
 from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession
 
@@ -131,3 +131,8 @@ class CommonModel:
                 limit=len(data_list),
             ),
         )
+
+    @classmethod
+    async def delete_records(cls, engine: AsyncSession, ids: List[int]) -> bool:
+        await engine.execute(delete(cls).where(cls.id.in_(ids)))
+        return True

@@ -8,7 +8,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import strawberry
 
 from .models import Base, CommonModel
-from .ticket import Ticket, TicketLine, TicketLineState, TicketLineNotAvailable
+from .ticket import (
+    Ticket,
+    TicketLine,
+    TicketLineState,
+    TicketLineNotAvailable,
+    TicketLineNotReserved,
+)
+
+
+class OrderAlreadyVerifyError(Exception):
+    pass
+
+
+class OrderAlreadyCancelError(Exception):
+    pass
 
 
 @strawberry.enum
@@ -47,7 +61,10 @@ class Order(Base, CommonModel):
         for tkt_line in tkt_lines:
             if tkt_line.state != TicketLineState.AVAILABLE:
                 raise TicketLineNotAvailable(f"Ticket Line ID - {tkt_line.id}")
-            ticket_id_map[tkt_line.ticket_id] = 0
+            if tkt_line.ticket_id in ticket_id_map:
+                ticket_id_map[tkt_line.ticket_id] += 1
+            else:
+                ticket_id_map[tkt_line.ticket_id] = 1
             tkt_line.state = TicketLineState.RESERVED
             tkt_line.user_code = user_code
             order_lines.append(OrderLine(order_id=order.id, ticket_line_id=tkt_line.id))
@@ -61,6 +78,89 @@ class Order(Base, CommonModel):
         session.add_all(order_lines)
         await session.flush()
         return order
+
+    @classmethod
+    async def get_ticket_lines_by_order_id(cls, order_id: int, session: AsyncSession):
+        res = await session.execute(
+            select(OrderLine).where(OrderLine.order_id == order_id)
+        )
+        order_lines = res.scalars().all()
+        ticket_line_ids = [order_line.ticket_line_id for order_line in order_lines]
+        res = await session.execute(
+            select(TicketLine)
+            .where(TicketLine.id.in_(ticket_line_ids))
+            .with_for_update()
+        )
+        ticket_lines = res.scalars().all()
+        ticket_id_map: Dict[int, int] = {}
+        return ticket_lines, ticket_id_map
+
+    @classmethod
+    async def confirm_order(
+        cls, record_id: int, user_code: str, session: AsyncSession
+    ) -> bool:
+        res = await session.execute(
+            select(cls)
+            .where(cls.user_code == user_code)
+            .where(cls.id == record_id)
+            .with_for_update()
+        )
+        order = res.scalars().one()
+        order.state = OrderState.SUCCESSFUL
+        ticket_lines, ticket_id_map = await cls.get_ticket_lines_by_order_id(
+            order_id=order.id, session=session
+        )
+        for tkt_line in ticket_lines:
+            if tkt_line.state != TicketLineState.RESERVED:
+                raise TicketLineNotReserved(f"Ticket Line ID - {tkt_line.id}")
+            if tkt_line.ticket_id in ticket_id_map:
+                ticket_id_map[tkt_line.ticket_id] += 1
+            else:
+                ticket_id_map[tkt_line.ticket_id] = 1
+            tkt_line.state = TicketLineState.SOLD
+        res = await session.execute(
+            select(Ticket).where(Ticket.id.in_(ticket_id_map.keys())).with_for_update()
+        )
+        tkts = res.scalars().all()
+        for tkt in tkts:
+            tkt.sold_count += ticket_id_map[tkt.id]
+            tkt.reserved_count -= ticket_id_map[tkt.id]
+        await session.flush()
+        return True
+
+    @classmethod
+    async def cancel_order(
+        cls, record_id: int, user_code: str, session: AsyncSession
+    ) -> bool:
+        res = await session.execute(
+            select(cls)
+            .where(cls.user_code == user_code)
+            .where(cls.id == record_id)
+            .with_for_update()
+        )
+        order = res.scalars().one()
+        if order.state == OrderState.VARIFIED:
+            raise OrderAlreadyVerifyError(f"Order ID - {order.id}")
+        if order.state == OrderState.CANCEL:
+            raise OrderAlreadyCancelError(f"Order ID - {order.id}")
+        order.state = OrderState.CANCEL
+        ticket_lines, ticket_id_map = await cls.get_ticket_lines_by_order_id(
+            order_id=order.id, session=session
+        )
+        for tkt_line in ticket_lines:
+            match order.state:
+                case OrderState.DRAFT:
+                    ...
+
+                case OrderState.SUCCESSFUL:
+                    ...
+
+            if tkt_line.ticket_id in ticket_id_map:
+                ticket_id_map[tkt_line.ticket_id] += 1
+            else:
+                ticket_id_map[tkt_line.ticket_id] = 1
+            tkt_line.state = TicketLineState.SOLD
+        return True
 
 
 class OrderLine(Base, CommonModel):

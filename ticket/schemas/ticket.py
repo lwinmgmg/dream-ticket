@@ -52,7 +52,7 @@ class TicketGql(CommonSchema):
 
 
 async def get_ticket_for_line(info: Info, root: "TicketLineGql") -> TicketGql:
-    session: AsyncSession = info.context.get("db_session")
+    session: AsyncSession = info.context.get("ro_db_session")
     tkt = await Ticket.get_record_by_id(id=root.ticket_id, engine=session)
     return TicketGql.parse_obj(tkt)
 

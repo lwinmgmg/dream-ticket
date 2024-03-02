@@ -54,16 +54,6 @@ class OrderGql(CommonSchema):
             )
         ]
 
-    @classmethod
-    async def order_now(cls, info: Info, ticket_line_ids: List[int]) -> "OrderGql":
-        user_code = cls.get_user(info=info)
-        session: AsyncSession = info.context.get("db_session")
-        return cls.parse_obj(
-            await Order.order_now(
-                tkt_line_ids=ticket_line_ids, user_code=user_code, session=session
-            )
-        )
-
 
 async def get_order_for_order_line(info: Info, root: "OrderLineGql") -> OrderGql:
     session: AsyncSession = info.context.get("ro_db_session")

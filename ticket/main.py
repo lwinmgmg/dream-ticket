@@ -40,7 +40,7 @@ schema = strawberry.Schema(
 )
 graphql_app = GraphQlContext(schema=schema)
 engine = get_pg_engine(
-    host="localhost", port=5432, user="lwinmgmg", password="frontiir", database="ticket"
+    host="localhost", port=5432, user="admin", password="admin", database="ticket"
 )
 
 

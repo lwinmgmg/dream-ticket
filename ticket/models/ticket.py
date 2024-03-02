@@ -16,6 +16,10 @@ class TicketLineNotAvailable(Exception):
     pass
 
 
+class TicketLineNotReserved(Exception):
+    pass
+
+
 @strawberry.enum
 class TicketState(Enum):
     DRAFT = "draft"
