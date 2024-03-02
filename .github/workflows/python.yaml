@@ -16,7 +16,7 @@ jobs:
     container: lwinmgmg/poetry:3.11.8-1.8.0
     steps:
     - name: Code Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Installation
       run: poetry install
     - name: Pylint
@@ -31,7 +31,7 @@ jobs:
     container: lwinmgmg/poetry:3.11.8-1.8.0
     steps:
     - name: Code Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Installation
       run: poetry install
     - name: Pytest
