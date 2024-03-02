@@ -26,3 +26,7 @@ class Mutation:
     update_order_line: List[OrderLineGql] = strawberry.mutation(
         resolver=OrderLineGql.update_record
     )
+
+    # ORDER AUTH
+    my_orders: List[OrderGql] = strawberry.field(resolver=OrderGql.my_orders)
+    order_now: List[OrderGql] = strawberry.field(resolver=OrderGql.order_now)

@@ -31,6 +31,3 @@ class Query:
     order_line_query: List[OrderLineGql] = strawberry.field(
         resolver=OrderLineGql.get_records_query
     )
-    # ORDER AUTH
-    my_orders: List[OrderGql] = strawberry.field(resolver=OrderGql.my_orders)
-    order_now: List[OrderGql] = strawberry.field(resolver=OrderGql.order_now)
