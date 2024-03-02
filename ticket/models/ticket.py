@@ -12,6 +12,10 @@ from .models import Base, CommonModel
 # pylint: disable=unsubscriptable-object
 
 
+class TicketLineNotAvailable(Exception):
+    pass
+
+
 @strawberry.enum
 class TicketState(Enum):
     DRAFT = "draft"

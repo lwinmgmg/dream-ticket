@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List
+from typing import List, Dict
 from sqlalchemy import String, ForeignKey, select
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import strawberry
 
 from .models import Base, CommonModel
-from .ticket import TicketLine
+from .ticket import Ticket, TicketLine, TicketLineState, TicketLineNotAvailable
 
 
 @strawberry.enum
@@ -30,6 +30,37 @@ class Order(Base, CommonModel):
     line_ids: Mapped[List["OrderLine"]] = relationship(
         back_populates="order",
     )
+
+    @classmethod
+    async def order_now(
+        cls, tkt_line_ids: List[int], user_code: str, session: AsyncSession
+    ) -> "Order":
+        res = await session.execute(
+            select(TicketLine).where(TicketLine.id.in_(tkt_line_ids)).with_for_update()
+        )
+        tkt_lines = res.scalars().all()
+        order = cls(name="order", state=OrderState.DRAFT, user_code=user_code)
+        session.add(order)
+        await session.flush()
+        order_lines: List[OrderLine] = []
+        ticket_id_map: Dict[int, int] = {}
+        for tkt_line in tkt_lines:
+            if tkt_line.state != TicketLineState.AVAILABLE:
+                raise TicketLineNotAvailable(f"Ticket Line ID - {tkt_line.id}")
+            ticket_id_map[tkt_line.ticket_id] = 0
+            tkt_line.state = TicketLineState.RESERVED
+            tkt_line.user_code = user_code
+            order_lines.append(OrderLine(order_id=order.id, ticket_line_id=tkt_line.id))
+        res = await session.execute(
+            select(Ticket).where(Ticket.id.in_(ticket_id_map.keys())).with_for_update()
+        )
+        tkts = res.scalars().all()
+        for tkt in tkts:
+            tkt.available_count -= ticket_id_map[tkt.id]
+            tkt.reserved_count += ticket_id_map[tkt.id]
+        session.add_all(order_lines)
+        await session.flush()
+        return order
 
 
 class OrderLine(Base, CommonModel):
