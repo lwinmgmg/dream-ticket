@@ -15,7 +15,7 @@ from .ticket import TicketLineGql
 async def get_order_lines_for_order(
     info: Info, root: "OrderGql"
 ) -> List["OrderLineGql"]:
-    session: AsyncSession = info.context.get("db_session")
+    session: AsyncSession = info.context.get("ro_db_session")
     return [
         OrderLineGql.parse_obj(ol)
         for ol in await OrderLine.get_order_lines_by_order_id(root.id, engine=session)
@@ -45,7 +45,7 @@ class OrderGql(CommonSchema):
     @classmethod
     async def my_orders(cls, info: Info) -> List["OrderGql"]:
         user_code = cls.get_user(info=info)
-        session: AsyncSession = info.context.get("db_session")
+        session: AsyncSession = info.context.get("ro_db_session")
         return [
             OrderGql.parse_obj(odr)
             for odr in await Order.get_records_query(
@@ -66,7 +66,7 @@ class OrderGql(CommonSchema):
 
 
 async def get_order_for_order_line(info: Info, root: "OrderLineGql") -> OrderGql:
-    session: AsyncSession = info.context.get("db_session")
+    session: AsyncSession = info.context.get("ro_db_session")
     return OrderGql.parse_obj(
         await Order.get_record_by_id(id=root.order_id, engine=session)
     )
@@ -75,7 +75,7 @@ async def get_order_for_order_line(info: Info, root: "OrderLineGql") -> OrderGql
 async def get_ticket_line_for_order_line(
     info: Info, root: "OrderLineGql"
 ) -> TicketLineGql:
-    session: AsyncSession = info.context.get("db_session")
+    session: AsyncSession = info.context.get("ro_db_session")
     return TicketLineGql.parse_obj(
         await TicketLine.get_record_by_id(id=root.ticket_line_id, engine=session)
     )

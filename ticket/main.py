@@ -1,5 +1,4 @@
 import contextlib
-from typing import Union, Optional
 import logging
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -12,7 +11,7 @@ from strawberry.asgi import GraphQL
 from ticket.services.engine import get_pg_engine
 from ticket.services.db_loader import DbLoader
 from ticket.middlewares.timing import TimingMiddleware, LogType
-from ticket.middlewares.db_session import DbSessionMiddleware
+from ticket.extensions.db_session import DbSessionExtension
 from ticket.models.models import Base
 from ticket.schemas.query import Query
 from ticket.schemas.mutation import Mutation
@@ -24,20 +23,24 @@ DB_KEY = "db"
 
 
 class GraphQlContext(GraphQL):
-    async def get_context(
-        self, request: Union[Request, WebSocket], response: Optional[Response] = None
-    ):
-        res = await super().get_context(request=response, response=response)
+    async def get_context(self, request: Request | WebSocket, response: Response):
+        res = await super().get_context(request=request, response=response)
         res["db"] = request.app.state.db
-        res["db_session"] = request.scope.get("db_session")
+        res["ro_db"] = request.app.state.ro_db
         res["user_code"] = "A0000001"
         return res
 
 
-schema = strawberry.Schema(Query, mutation=Mutation)
+schema = strawberry.Schema(
+    Query,
+    mutation=Mutation,
+    extensions=[
+        DbSessionExtension,
+    ],
+)
 graphql_app = GraphQlContext(schema=schema)
 engine = get_pg_engine(
-    host="localhost", port=5432, user="admin", password="admin", database="ticket"
+    host="localhost", port=5432, user="lwinmgmg", password="frontiir", database="ticket"
 )
 
 
@@ -51,15 +54,17 @@ async def db_load():
 async def lifespan(router: Starlette):
     # On startup functions
     await db_load()
-    db_loader = DbLoader(app=router, key=DB_KEY, engine=engine)
+    db_loader = DbLoader(app=router, key="db", engine=engine)
     await db_loader.startup()
+    ro_db_loader = DbLoader(app=router, key="ro_db", engine=engine)
+    await ro_db_loader.startup()
     yield
     # On Shutdown functions
     await db_loader.shutdown()
+    await ro_db_loader.shutdown()
 
 
 app = Starlette(lifespan=lifespan)
 app.add_middleware(TimingMiddleware, log_type=LogType.INFO)
-app.add_middleware(DbSessionMiddleware, key=DB_KEY)
 app.add_middleware(CORSMiddleware, allow_origins=["*"])
 app.add_route("/graphql", graphql_app)  # type: ignore

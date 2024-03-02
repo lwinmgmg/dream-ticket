@@ -9,7 +9,7 @@ from .schemas import CommonSchema
 
 
 async def get_lines_for_ticket(info: Info, root: "TicketGql") -> List["TicketLineGql"]:
-    session: AsyncSession = info.context.get("db_session")
+    session: AsyncSession = info.context.get("ro_db_session")
     return [
         TicketLineGql.parse_obj(tl)
         for tl in await TicketLine.get_ticket_line_by_tid(

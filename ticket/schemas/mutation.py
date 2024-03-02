@@ -28,5 +28,4 @@ class Mutation:
     )
 
     # ORDER AUTH
-    my_orders: List[OrderGql] = strawberry.field(resolver=OrderGql.my_orders)
     order_now: OrderGql = strawberry.field(resolver=OrderGql.order_now)

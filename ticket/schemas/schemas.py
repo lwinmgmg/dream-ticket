@@ -1,4 +1,4 @@
-from typing import Generic, List, Dict, Optional, Self, TypeVar
+from typing import Generic, Tuple, List, Dict, Optional, Self, TypeVar
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.exceptions import HTTPException
 from starlette import status
@@ -10,8 +10,9 @@ from ticket.models.models import Filter, CommonModel
 
 # pylint: disable = too-many-arguments
 
-_MODEL_TYPE = TypeVar("_MODEL_TYPE")  # pylint: disable = invalid-name
-_ENUM_TYPE = TypeVar("_ENUM_TYPE")  # pylint: disable = invalid-name
+M = TypeVar("M")
+E = TypeVar("E")
+T = TypeVar("T")
 
 
 class NoIdForUpdate(Exception):
@@ -19,10 +20,18 @@ class NoIdForUpdate(Exception):
         super().__init__(*args)
 
 
-class CommonSchema(Generic[_MODEL_TYPE, _ENUM_TYPE]):
+@strawberry.input
+class QueryFilter(Generic[T]):
+    domain: List[Tuple[str, str, T]]
+    order: Optional[JSON]
+    limit: Optional[int] = 10
+    offset: Optional[int] = 0
+
+
+class CommonSchema(Generic[M, E]):
     _model_type: type[CommonModel] = CommonModel
 
-    _model_enums: Dict[str, _ENUM_TYPE] = {}
+    _model_enums: Dict[str, E] = {}
 
     @classmethod
     def get_user(cls, info: Info) -> str:
@@ -34,12 +43,12 @@ class CommonSchema(Generic[_MODEL_TYPE, _ENUM_TYPE]):
         return user_code
 
     @classmethod
-    def parse_obj(cls, model: _MODEL_TYPE) -> Self:
+    def parse_obj(cls, model: M) -> Self:
         return cls(**model)
 
     @classmethod
     async def get_records(cls, info: Info) -> List[Self]:
-        session: AsyncSession = info.context.get("db_session")
+        session: AsyncSession = info.context.get("ro_db_session")
         return [
             cls.parse_obj(tkt)
             for tkt in await cls._model_type.get_records(engine=session)
@@ -47,33 +56,29 @@ class CommonSchema(Generic[_MODEL_TYPE, _ENUM_TYPE]):
 
     @classmethod
     async def get_record(cls, info: Info, id: strawberry.ID) -> Self:
-        session: AsyncSession = info.context.get("db_session")
+        session: AsyncSession = info.context.get("ro_db_session")
         return cls.parse_obj(
             await cls._model_type.get_record_by_id(id=int(id), engine=session)
         )
 
     @classmethod
-    async def get_records_query(
-        cls,
-        info: Info,
-        domain: Optional[JSON],
-        order: Optional[JSON],
-        limit: Optional[int] = 10,
-        offset: Optional[int] = 0,
-    ) -> List[Self]:
-        session: AsyncSession = info.context.get("db_session")
+    async def get_records_query(cls, info: Info, query: QueryFilter) -> List[Self]:
+        session: AsyncSession = info.context.get("ro_db_session")
         return [
-            cls.parse_obj(tkt)  # type: ignore
-            for tkt in await cls._model_type.get_records_query(  # type: ignore
+            cls.parse_obj(tkt)
+            for tkt in await cls._model_type.get_records_query(
                 engine=session,
                 query=Filter(
-                    domain=domain, order=order, limit=limit, offset=offset  # type: ignore
+                    domain=query.domain,
+                    order=query.order,
+                    limit=query.limit,
+                    offset=query.offset,
                 ),
             )
         ]
 
     @classmethod
-    async def add_record(cls, info: Info, data: JSON) -> Self:
+    async def add_record(cls, info: Info, data: List[JSON]) -> Self:
         session: AsyncSession = info.context.get("db_session")
         new_record = cls._model_type(**data)
         await new_record.add_record(engine=session)
