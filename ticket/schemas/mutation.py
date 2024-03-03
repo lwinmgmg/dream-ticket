@@ -39,3 +39,4 @@ class Mutation:
     # ORDER AUTH Functions
     order_now: OrderGql = strawberry.field(resolver=OrderFuncGql.order_now)
     confirm_order: bool = strawberry.field(resolver=OrderFuncGql.confirm_order)
+    cancel_order: bool = strawberry.field(resolver=OrderFuncGql.cancel_order)

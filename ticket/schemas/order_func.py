@@ -26,3 +26,11 @@ class OrderFuncGql(OrderGql):
         return await Order.confirm_order(
             record_id=record_id, user_code=user_code, session=session
         )
+
+    @classmethod
+    async def cancel_order(cls, info: Info, record_id: int) -> bool:
+        user_code = cls.get_user(info=info)
+        session: AsyncSession = info.context.get("db_session")
+        return await Order.cancel_order(
+            record_id=record_id, user_code=user_code, session=session
+        )

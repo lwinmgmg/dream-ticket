@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Generic, Tuple, List, Dict, Optional, Self, TypeVar
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.exceptions import HTTPException
@@ -32,6 +33,10 @@ class CommonSchema(Generic[M, E]):
     _model_type: type[CommonModel] = CommonModel
 
     _model_enums: Dict[str, E] = {}
+
+    id: strawberry.ID
+    create_date: datetime
+    wriet_date: datetime
 
     @classmethod
     def get_user(cls, info: Info) -> str:
@@ -78,7 +83,7 @@ class CommonSchema(Generic[M, E]):
         ]
 
     @classmethod
-    async def add_record(cls, info: Info, data: List[JSON]) -> Self:
+    async def add_record(cls, info: Info, data: JSON) -> Self:
         session: AsyncSession = info.context.get("db_session")
         new_record = cls._model_type(**data)
         await new_record.add_record(engine=session)
@@ -92,7 +97,7 @@ class CommonSchema(Generic[M, E]):
         return cls.parse_obj(new_record)
 
     @classmethod
-    async def update_record(cls, info: Info, data_list: JSON) -> List[Self]:
+    async def update_record(cls, info: Info, data_list: List[JSON]) -> List[Self]:
         session: AsyncSession = info.context.get("db_session")
         for data in data_list:
             if not data.get("id"):

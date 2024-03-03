@@ -1,4 +1,5 @@
 from typing import List, Optional
+from datetime import datetime
 import strawberry
 from strawberry.types import Info
 
@@ -32,6 +33,8 @@ class OrderGql(CommonSchema):
     state: OrderState
     user_code: Optional[str]
     lines: List["OrderLineGql"] = strawberry.field(resolver=get_order_lines_for_order)
+    create_date: datetime
+    write_date: datetime
 
     @classmethod
     def parse_obj(cls, model: Order) -> "OrderGql":
@@ -40,6 +43,8 @@ class OrderGql(CommonSchema):
             name=model.name,
             state=model.state,
             user_code=model.user_code,
+            create_date=model.create_date,
+            write_date=model.write_date,
         )
 
     @classmethod
@@ -83,6 +88,8 @@ class OrderLineGql(CommonSchema):
     ticket_line: TicketLineGql = strawberry.field(
         resolver=get_ticket_line_for_order_line
     )
+    create_date: datetime
+    write_date: datetime
 
     @classmethod
     def parse_obj(cls, model: OrderLine) -> "OrderLineGql":
@@ -90,4 +97,6 @@ class OrderLineGql(CommonSchema):
             id=model.id,  # type: ignore
             order_id=model.order_id,
             ticket_line_id=model.ticket_line_id,
+            create_date=model.create_date,
+            write_date=model.write_date,
         )

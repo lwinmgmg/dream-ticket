@@ -1,8 +1,9 @@
 from typing import Optional, Dict, Tuple, List, Any, Self
 from enum import Enum
+from datetime import datetime
 from pydantic import BaseModel
-from sqlalchemy import select, Select, update, delete
-from sqlalchemy.orm import DeclarativeBase, Mapped
+from sqlalchemy import select, Select, update, delete, DateTime
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession
 
 
@@ -83,6 +84,12 @@ class Filter(BaseModel):
 
 class CommonModel:
     id: Mapped[int]
+    create_date: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, index=True
+    )
+    write_date: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True
+    )
 
     @classmethod
     async def get_record_by_id(cls, id: int, engine: AsyncSession) -> Self:

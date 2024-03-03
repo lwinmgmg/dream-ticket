@@ -25,6 +25,10 @@ class OrderAlreadyCancelError(Exception):
     pass
 
 
+class OrderUnknownStateError(Exception):
+    pass
+
+
 @strawberry.enum
 class OrderState(Enum):
     DRAFT = "draft"
@@ -34,7 +38,7 @@ class OrderState(Enum):
 
 
 class Order(Base, CommonModel):
-    __tablename__ = "order"
+    __tablename__ = "ticket_order"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(15), index=True)
@@ -139,35 +143,50 @@ class Order(Base, CommonModel):
             .with_for_update()
         )
         order = res.scalars().one()
-        if order.state == OrderState.VARIFIED:
-            raise OrderAlreadyVerifyError(f"Order ID - {order.id}")
-        if order.state == OrderState.CANCEL:
-            raise OrderAlreadyCancelError(f"Order ID - {order.id}")
-        order.state = OrderState.CANCEL
         ticket_lines, ticket_id_map = await cls.get_ticket_lines_by_order_id(
             order_id=order.id, session=session
         )
+        ticket_sold_id_map: Dict[int, int] = {}
         for tkt_line in ticket_lines:
             match order.state:
                 case OrderState.DRAFT:
-                    ...
-
+                    if tkt_line.ticket_id in ticket_id_map:
+                        ticket_id_map[tkt_line.ticket_id] += 1
+                    else:
+                        ticket_id_map[tkt_line.ticket_id] = 1
                 case OrderState.SUCCESSFUL:
-                    ...
-
-            if tkt_line.ticket_id in ticket_id_map:
-                ticket_id_map[tkt_line.ticket_id] += 1
-            else:
-                ticket_id_map[tkt_line.ticket_id] = 1
-            tkt_line.state = TicketLineState.SOLD
+                    if tkt_line.ticket_id in ticket_sold_id_map:
+                        ticket_sold_id_map[tkt_line.ticket_id] += 1
+                    else:
+                        ticket_sold_id_map[tkt_line.ticket_id] = 1
+                case OrderState.VARIFIED:
+                    raise OrderAlreadyVerifyError(f"Order ID - {order.id}")
+                case OrderState.CANCEL:
+                    raise OrderAlreadyCancelError(f"Order ID - {order.id}")
+            tkt_line.state = TicketLineState.AVAILABLE
+        order.state = OrderState.CANCEL
+        res = await session.execute(
+            select(Ticket)
+            .where(Ticket.id.in_([*ticket_id_map.keys(), *ticket_sold_id_map.keys()]))
+            .with_for_update()
+        )
+        tkts = res.scalars().all()
+        for tkt in tkts:
+            if tkt.id in ticket_id_map:
+                tkt.reserved_count -= ticket_id_map[tkt.id]
+                tkt.available_count += ticket_id_map[tkt.id]
+            if tkt.id in ticket_sold_id_map:
+                tkt.sold_count -= ticket_sold_id_map[tkt.id]
+                tkt.available_count += ticket_sold_id_map[tkt.id]
+        await session.flush()
         return True
 
 
 class OrderLine(Base, CommonModel):
-    __tablename__ = "order_line"
+    __tablename__ = "ticket_order_line"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    order_id: Mapped[int] = mapped_column(ForeignKey("order.id"), index=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("ticket_order.id"), index=True)
     order: Mapped[Order] = relationship(back_populates="line_ids")
     ticket_line_id: Mapped[int] = mapped_column(
         ForeignKey("ticket_line.id"), index=True

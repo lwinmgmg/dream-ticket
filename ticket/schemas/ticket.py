@@ -1,4 +1,5 @@
 from typing import List, Optional
+from datetime import datetime
 import strawberry
 from strawberry.types import Info
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,14 +27,16 @@ class TicketGql(CommonSchema):
     id: strawberry.ID
     name: str
     state: TicketState
-    description: str
+    description: Optional[str] = strawberry.field(default="")
     start_num: int
     end_num: int
-    win_num: int
+    win_num: Optional[int] = strawberry.field(default=0)
     available_count: int
     reserved_count: int
     sold_count: int
     lines: List["TicketLineGql"] = strawberry.field(resolver=get_lines_for_ticket)
+    create_date: datetime
+    write_date: datetime
 
     @classmethod
     def parse_obj(cls, model: Ticket) -> "TicketGql":
@@ -48,6 +51,8 @@ class TicketGql(CommonSchema):
             available_count=model.available_count,
             reserved_count=model.reserved_count,
             sold_count=model.sold_count,
+            create_date=model.create_date,
+            write_date=model.write_date,
         )
 
 
@@ -70,6 +75,8 @@ class TicketLineGql(CommonSchema):
     is_special_price: bool
     special_price: float
     state: TicketLineState
+    create_date: datetime
+    write_date: datetime
 
     @classmethod
     def parse_obj(cls, model: TicketLine) -> "TicketLineGql":
@@ -81,4 +88,6 @@ class TicketLineGql(CommonSchema):
             is_special_price=model.is_special_price,
             special_price=model.special_price,
             state=model.state,
+            create_date=model.create_date,
+            write_date=model.write_date,
         )
