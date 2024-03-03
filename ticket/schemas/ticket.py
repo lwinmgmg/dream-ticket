@@ -35,6 +35,7 @@ class TicketGql(CommonSchema):
     reserved_count: int
     sold_count: int
     lines: List["TicketLineGql"] = strawberry.field(resolver=get_lines_for_ticket)
+    sync_user: str
     create_date: datetime
     write_date: datetime
 
@@ -51,6 +52,7 @@ class TicketGql(CommonSchema):
             available_count=model.available_count,
             reserved_count=model.reserved_count,
             sold_count=model.sold_count,
+            sync_user=model.sync_user,
             create_date=model.create_date,
             write_date=model.write_date,
         )

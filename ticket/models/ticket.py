@@ -44,6 +44,7 @@ class Ticket(Base, CommonModel):
     line_ids: Mapped[List["TicketLine"]] = relationship(
         back_populates="ticket",
     )
+    sync_user: Mapped[str] = mapped_column(String, index=True)
 
     def __repr__(self) -> str:
         return f"Ticket(id={self.id!r}, name={self.name!r})"
