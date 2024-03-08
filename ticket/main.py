@@ -1,5 +1,6 @@
 import contextlib
 import logging
+from typing import Tuple
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.websockets import WebSocket
@@ -8,6 +9,7 @@ from starlette.middleware.cors import CORSMiddleware
 import strawberry
 from strawberry.asgi import GraphQL
 
+from ticket.services.odoo import Odoo
 from ticket.services.engine import get_pg_engine
 from ticket.services.db_loader import DbLoader
 from ticket.middlewares.timing import TimingMiddleware, LogType
@@ -21,13 +23,34 @@ logger.propagate = False
 
 DB_KEY = "db"
 
+odoo = Odoo("http://localhost:8069")
+
 
 class GraphQlContext(GraphQL):
+    @classmethod
+    def custom_get_auth(cls, request: Request | WebSocket) -> Tuple[str, str]:
+        auth_values = request.headers.get("Authorization")
+        if not auth_values:
+            return "", ""
+        values = auth_values.split(" ")
+        if len(values) != 2:
+            return "", ""
+        return values[0], values[1]
+
+    @classmethod
+    def get_user(cls) -> str:
+        return "A00001"
+
     async def get_context(self, request: Request | WebSocket, response: Response):
         res = await super().get_context(request=request, response=response)
         res["db"] = request.app.state.db
         res["ro_db"] = request.app.state.ro_db
-        res["user_code"] = "A0000001"
+        token_type, access_token = self.custom_get_auth(request=request)
+        match token_type.lower():
+            case "bearer":
+                res["user_code"] = self.get_user()
+            case "odoo":
+                res["odoo_user"] = await odoo.get_odoo_user(access_token)
         return res
 
 

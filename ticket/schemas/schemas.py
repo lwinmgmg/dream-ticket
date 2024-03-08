@@ -48,11 +48,21 @@ class CommonSchema(Generic[M, E]):
         return user_code
 
     @classmethod
+    def get_odoo_user(cls, info: Info) -> str:
+        odoo_user: str = info.context.get("odoo_user")
+        if not odoo_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
+            )
+        return odoo_user
+
+    @classmethod
     def parse_obj(cls, model: M) -> Self:
         return cls(**model)
 
     @classmethod
     async def get_records(cls, info: Info) -> List[Self]:
+        cls.get_odoo_user(info=info)
         session: AsyncSession = info.context.get("ro_db_session")
         return [
             cls.parse_obj(tkt)
@@ -61,6 +71,7 @@ class CommonSchema(Generic[M, E]):
 
     @classmethod
     async def get_record(cls, info: Info, id: strawberry.ID) -> Self:
+        cls.get_odoo_user(info=info)
         session: AsyncSession = info.context.get("ro_db_session")
         return cls.parse_obj(
             await cls._model_type.get_record_by_id(id=int(id), engine=session)
@@ -68,6 +79,7 @@ class CommonSchema(Generic[M, E]):
 
     @classmethod
     async def get_records_query(cls, info: Info, query: QueryFilter) -> List[Self]:
+        cls.get_odoo_user(info=info)
         session: AsyncSession = info.context.get("ro_db_session")
         return [
             cls.parse_obj(tkt)
@@ -84,6 +96,7 @@ class CommonSchema(Generic[M, E]):
 
     @classmethod
     async def add_record(cls, info: Info, data: JSON) -> Self:
+        cls.get_odoo_user(info=info)
         session: AsyncSession = info.context.get("db_session")
         new_record = cls._model_type(**data)
         await new_record.add_record(engine=session)
@@ -98,6 +111,7 @@ class CommonSchema(Generic[M, E]):
 
     @classmethod
     async def update_record(cls, info: Info, data_list: List[JSON]) -> List[Self]:
+        cls.get_odoo_user(info=info)
         session: AsyncSession = info.context.get("db_session")
         for data in data_list:
             if not data.get("id"):
@@ -111,5 +125,6 @@ class CommonSchema(Generic[M, E]):
 
     @classmethod
     async def delete_record(cls, info: Info, ids: List[int]) -> bool:
+        cls.get_odoo_user(info=info)
         session: AsyncSession = info.context.get("db_session")
         return await cls._model_type.delete_records(engine=session, ids=ids)
