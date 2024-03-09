@@ -14,6 +14,7 @@ sqlalchemy = "^2.0.27"
 asyncpg = "^0.29.0"
 pydantic = "^2.6.2"
 aiohttp = "^3.9.3"
+user-go = { git = "https://github.com/lwinmgmg/grpc_m.git", subdirectory = "user_go", tag = "v0.1.2" }
 
 
 [tool.poetry.group.dev.dependencies]

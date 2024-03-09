@@ -1,6 +1,7 @@
 import contextlib
 import logging
 from typing import Tuple
+import grpc
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.websockets import WebSocket
@@ -8,6 +9,7 @@ from starlette.responses import Response
 from starlette.middleware.cors import CORSMiddleware
 import strawberry
 from strawberry.asgi import GraphQL
+from user_go import user_go_pb2, user_go_pb2_grpc
 
 from ticket.services.odoo import Odoo
 from ticket.services.engine import get_pg_engine
@@ -38,8 +40,11 @@ class GraphQlContext(GraphQL):
         return values[0], values[1]
 
     @classmethod
-    def get_user(cls) -> str:
-        return "A00001"
+    def get_user(cls, token: str) -> str:
+        with grpc.insecure_channel('0.0.0.0:3002') as channel:
+            stub = user_go_pb2_grpc.UserServiceStub(channel=channel)
+            response = stub.CheckToken(user_go_pb2.Token(token=token))
+        return response.code
 
     async def get_context(self, request: Request | WebSocket, response: Response):
         res = await super().get_context(request=request, response=response)
@@ -48,7 +53,7 @@ class GraphQlContext(GraphQL):
         token_type, access_token = self.custom_get_auth(request=request)
         match token_type.lower():
             case "bearer":
-                res["user_code"] = self.get_user()
+                res["user_code"] = self.get_user(access_token)
             case "odoo":
                 res["odoo_user"] = await odoo.get_odoo_user(access_token)
         return res
