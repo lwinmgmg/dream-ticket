@@ -34,6 +34,7 @@ class Ticket(Base, CommonModel):
     name: Mapped[str] = mapped_column(String(30))
     state: Mapped[TicketState] = mapped_column(index=True, default=TicketState.DRAFT)
     description: Mapped[str] = mapped_column(Text, nullable=True)
+    price: Mapped[float] = mapped_column(Float, default=0.0)
     start_num: Mapped[int] = mapped_column(Integer, default=0)
     end_num: Mapped[int] = mapped_column(Integer)
     win_num: Mapped[int] = mapped_column(Integer, nullable=True)

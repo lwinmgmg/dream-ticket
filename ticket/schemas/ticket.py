@@ -28,6 +28,7 @@ class TicketGql(CommonSchema):
     name: str
     state: TicketState
     description: Optional[str] = strawberry.field(default="")
+    price: float
     start_num: int
     end_num: int
     win_num: Optional[int] = strawberry.field(default=0)
@@ -46,6 +47,7 @@ class TicketGql(CommonSchema):
             name=model.name,
             state=model.state,
             description=model.description,
+            price=model.price,
             start_num=model.start_num,
             end_num=model.end_num,
             win_num=model.win_num,

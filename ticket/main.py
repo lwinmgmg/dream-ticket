@@ -16,7 +16,6 @@ from ticket.services.engine import get_pg_engine
 from ticket.services.db_loader import DbLoader
 from ticket.middlewares.timing import TimingMiddleware, LogType
 from ticket.extensions.db_session import DbSessionExtension
-from ticket.models.models import Base
 from ticket.schemas.query import Query
 from ticket.schemas.mutation import Mutation
 
@@ -41,8 +40,9 @@ class GraphQlContext(GraphQL):
 
     @classmethod
     def get_user(cls, token: str) -> str:
-        with grpc.insecure_channel('0.0.0.0:3002') as channel:
+        with grpc.insecure_channel("0.0.0.0:3002") as channel:
             stub = user_go_pb2_grpc.UserServiceStub(channel=channel)
+            # pylint: disable = no-member
             response = stub.CheckToken(user_go_pb2.Token(token=token))
         return response.code
 
@@ -72,16 +72,16 @@ engine = get_pg_engine(
 )
 
 
-async def db_load():
-    async with engine.connect() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        await conn.commit()
+# async def db_load():
+#     async with engine.connect() as conn:
+#         await conn.run_sync(Base.metadata.create_all)
+#         await conn.commit()
 
 
 @contextlib.asynccontextmanager
 async def lifespan(router: Starlette):
     # On startup functions
-    await db_load()
+    # await db_load()
     db_loader = DbLoader(app=router, key="db", engine=engine)
     await db_loader.startup()
     ro_db_loader = DbLoader(app=router, key="ro_db", engine=engine)

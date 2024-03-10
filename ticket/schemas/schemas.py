@@ -79,7 +79,6 @@ class CommonSchema(Generic[M, E]):
 
     @classmethod
     async def get_records_query(cls, info: Info, query: QueryFilter) -> List[Self]:
-        cls.get_odoo_user(info=info)
         session: AsyncSession = info.context.get("ro_db_session")
         return [
             cls.parse_obj(tkt)
