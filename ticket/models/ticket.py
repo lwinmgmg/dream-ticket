@@ -1,6 +1,16 @@
+from datetime import datetime
 from enum import Enum
 from typing import List
-from sqlalchemy import String, Integer, Float, Text, Boolean, ForeignKey, select
+from sqlalchemy import (
+    String,
+    Integer,
+    Float,
+    Text,
+    Boolean,
+    ForeignKey,
+    select,
+    DateTime,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
@@ -38,6 +48,8 @@ class Ticket(Base, CommonModel):
     start_num: Mapped[int] = mapped_column(Integer, default=0)
     end_num: Mapped[int] = mapped_column(Integer)
     win_num: Mapped[int] = mapped_column(Integer, nullable=True)
+    start_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    end_date: Mapped[datetime] = mapped_column(DateTime)
     available_count: Mapped[int] = mapped_column(Integer)
     reserved_count: Mapped[int] = mapped_column(Integer, default=0)
     sold_count: Mapped[int] = mapped_column(Integer, default=0)

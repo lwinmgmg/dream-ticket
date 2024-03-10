@@ -31,6 +31,8 @@ class TicketGql(CommonSchema):
     price: float
     start_num: int
     end_num: int
+    start_date: datetime
+    end_date: datetime
     win_num: Optional[int] = strawberry.field(default=0)
     available_count: int
     reserved_count: int
@@ -50,6 +52,8 @@ class TicketGql(CommonSchema):
             price=model.price,
             start_num=model.start_num,
             end_num=model.end_num,
+            start_date=model.start_date,
+            end_date=model.end_date,
             win_num=model.win_num,
             available_count=model.available_count,
             reserved_count=model.reserved_count,
