@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
+from pydantic import BaseModel
 import strawberry
 from strawberry.types import Info
 
@@ -23,9 +24,17 @@ async def get_order_lines_for_order(
     ]
 
 
+class OrderData(BaseModel):
+    id: Optional[int] = 0
+    name: Optional[str] = ""
+    state: Optional[OrderState] = None
+    user_code: Optional[str] = ""
+
+
 @strawberry.type
 class OrderGql(CommonSchema):
     _model_type = Order
+    _data_type = OrderData
     _model_enums = {"state": OrderState}
 
     id: strawberry.ID
@@ -76,9 +85,16 @@ async def get_ticket_line_for_order_line(
     )
 
 
+class OrderLineData(BaseModel):
+    id: Optional[int] = 0
+    order_id: Optional[int] = 0
+    ticket_line_id: Optional[int] = 0
+
+
 @strawberry.type
 class OrderLineGql(CommonSchema):
     _model_type = OrderLine
+    _data_type = OrderLineData
     _model_enums = {}
 
     id: strawberry.ID

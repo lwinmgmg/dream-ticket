@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Generic, Tuple, List, Dict, Optional, Self, TypeVar
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.exceptions import HTTPException
 from starlette import status
@@ -31,7 +32,7 @@ class QueryFilter(Generic[T]):
 
 class CommonSchema(Generic[M, E]):
     _model_type: type[CommonModel] = CommonModel
-
+    _data_type: type[BaseModel] = BaseModel
     _model_enums: Dict[str, E] = {}
 
     id: strawberry.ID
@@ -71,7 +72,6 @@ class CommonSchema(Generic[M, E]):
 
     @classmethod
     async def get_record(cls, info: Info, id: strawberry.ID) -> Self:
-        cls.get_odoo_user(info=info)
         session: AsyncSession = info.context.get("ro_db_session")
         return cls.parse_obj(
             await cls._model_type.get_record_by_id(id=int(id), engine=session)
@@ -97,28 +97,25 @@ class CommonSchema(Generic[M, E]):
     async def add_record(cls, info: Info, data: JSON) -> Self:
         cls.get_odoo_user(info=info)
         session: AsyncSession = info.context.get("db_session")
-        new_record = cls._model_type(**data)
+        new_record = cls._model_type(
+            **cls._data_type.model_validate(data).model_dump(exclude_unset=True)
+        )
         await new_record.add_record(engine=session)
-        for enum_field in cls._model_enums or []:
-            if enum_field in data:
-                setattr(
-                    new_record,
-                    enum_field,
-                    getattr(cls._model_enums[enum_field], data[enum_field]),
-                )
         return cls.parse_obj(new_record)
 
     @classmethod
     async def update_record(cls, info: Info, data_list: List[JSON]) -> List[Self]:
         cls.get_odoo_user(info=info)
         session: AsyncSession = info.context.get("db_session")
-        for data in data_list:
-            if not data.get("id"):
-                raise NoIdForUpdate("No id found for update ticket")
         return [
             cls.parse_obj(tkt)
             for tkt in await cls._model_type.update_records(
-                engine=session, data_list=data_list
+                engine=session,
+                data_list=[
+                    cls._data_type.model_validate(data).model_dump(exclude_unset=True)
+                    for data in data_list
+                    if data.get("id")
+                ],
             )
         ]
 

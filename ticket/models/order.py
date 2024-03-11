@@ -31,10 +31,10 @@ class OrderUnknownStateError(Exception):
 
 @strawberry.enum
 class OrderState(Enum):
-    DRAFT = "draft"
-    CANCEL = "cancel"
-    SUCCESSFUL = "successful"
-    VARIFIED = "varified"
+    DRAFT = "DRAFT"
+    CANCEL = "CANCEL"
+    SUCCESSFUL = "SUCCESSFUL"
+    VARIFIED = "VARIFIED"
 
 
 class Order(Base, CommonModel):

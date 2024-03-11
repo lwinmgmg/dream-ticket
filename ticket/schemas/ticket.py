@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
+from pydantic import BaseModel
 import strawberry
 from strawberry.types import Info
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,9 +20,27 @@ async def get_lines_for_ticket(info: Info, root: "TicketGql") -> List["TicketLin
     ]
 
 
+class TicketData(BaseModel):
+    id: Optional[int] = 0
+    name: Optional[str] = ""
+    state: Optional[TicketState] = None
+    description: Optional[str] = ""
+    price: Optional[float] = 0.0
+    start_num: Optional[int] = 0
+    end_num: Optional[int] = 0
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    win_num: Optional[int] = 0
+    available_count: Optional[int] = 0
+    reserved_count: Optional[int] = 0
+    sold_count: Optional[int] = 0
+    sync_user: Optional[str] = ""
+
+
 @strawberry.type
 class TicketGql(CommonSchema):
     _model_type = Ticket
+    _data_type = TicketData
     _model_enums = {"state": TicketState}
 
     id: strawberry.ID
@@ -70,9 +89,20 @@ async def get_ticket_for_line(info: Info, root: "TicketLineGql") -> TicketGql:
     return TicketGql.parse_obj(tkt)
 
 
+class TicketLineData(BaseModel):
+    id: Optional[int] = 0
+    number: Optional[int] = 0
+    ticket_id: Optional[int] = 0
+    user_code: Optional[str] = ""
+    is_special_price: Optional[bool] = False
+    special_price: Optional[float] = 0.0
+    state: Optional[TicketLineState] = None
+
+
 @strawberry.type
 class TicketLineGql(CommonSchema):
     _model_type = TicketLine
+    _data_type = TicketLineData
     _model_enums = {"state": TicketLineState}
 
     id: strawberry.ID

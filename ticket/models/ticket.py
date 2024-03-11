@@ -32,9 +32,9 @@ class TicketLineNotReserved(Exception):
 
 @strawberry.enum
 class TicketState(Enum):
-    DRAFT = "draft"
-    POSTED = "posted"
-    DONE = "done"
+    DRAFT = "DRAFT"
+    POSTED = "POSTED"
+    DONE = "DONE"
 
 
 class Ticket(Base, CommonModel):
@@ -48,8 +48,10 @@ class Ticket(Base, CommonModel):
     start_num: Mapped[int] = mapped_column(Integer, default=0)
     end_num: Mapped[int] = mapped_column(Integer)
     win_num: Mapped[int] = mapped_column(Integer, nullable=True)
-    start_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    end_date: Mapped[datetime] = mapped_column(DateTime)
+    start_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     available_count: Mapped[int] = mapped_column(Integer)
     reserved_count: Mapped[int] = mapped_column(Integer, default=0)
     sold_count: Mapped[int] = mapped_column(Integer, default=0)
@@ -78,9 +80,9 @@ class Ticket(Base, CommonModel):
 
 @strawberry.enum
 class TicketLineState(Enum):
-    AVAILABLE = "available"
-    RESERVED = "reserved"
-    SOLD = "sold"
+    AVAILABLE = "AVAILABLE"
+    RESERVED = "RESERVED"
+    SOLD = "SOLD"
 
 
 class TicketLine(Base, CommonModel):
