@@ -32,6 +32,8 @@ jobs:
     steps:
     - name: Code Checkout
       uses: actions/checkout@v4
+    - name: Copying settings.yaml
+      run: cp settings.yaml.example settings.yaml
     - name: Installation
       run: poetry install
     - name: Pytest
