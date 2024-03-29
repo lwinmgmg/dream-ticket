@@ -1,5 +1,5 @@
 import os
-from env.settings import load_setting, load_setting_from_env
+from ticket.env.settings import load_setting, load_setting_from_env
 
 
 def test_load_setting():

@@ -33,11 +33,18 @@ class UserHttp(BaseModel):
     redirect_url: str
 
 
+class Scopes(BaseModel):
+    user_read: str
+    order_read: str
+    order_all: str
+
+
 class UserService(BaseModel):
     http: UserHttp
     grpc: Server
     client_id: str
     client_secret: str
+    scopes: Scopes
 
 
 class Services(BaseModel):

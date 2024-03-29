@@ -14,6 +14,10 @@ services:
       port: 3002
     client_id: e2a06558-7da6-44f9-8447-68ff8c750344
     client_secret: 7MfdTWHEKsLh5GQA8ZuU70TGn-ZTMCY5LllCQ0n5uSc=
+    scopes:
+      user_read: "UserRead"
+      order_read: "TicketOrderRead"
+      order_all: "TicketOrderAll"
   postgres:
     db:
       host: postgres
@@ -27,4 +31,3 @@ services:
       user: admin
       password: admin
       database: ticket
-  

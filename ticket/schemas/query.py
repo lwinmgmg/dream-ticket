@@ -1,6 +1,7 @@
 from typing import List
 import strawberry
 
+from ticket.extensions.auth_extension import OrderReadExt
 from .order import OrderGql, OrderLineGql
 from .ticket import TicketGql, TicketLineGql
 
@@ -33,4 +34,7 @@ class Query:
     )
 
     # ORDER AUTH
-    my_orders: List[OrderGql] = strawberry.field(resolver=OrderGql.my_orders)
+    my_orders: List[OrderGql] = strawberry.field(
+        resolver=OrderGql.my_orders,
+        extensions=[OrderReadExt],
+    )

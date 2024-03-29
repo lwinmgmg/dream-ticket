@@ -11,7 +11,7 @@ import strawberry
 from strawberry.asgi import GraphQL
 from user_go import user_go_pb2, user_go_pb2_grpc
 
-from env.settings import load_setting_from_env
+from ticket.env.settings import load_setting_from_env
 from ticket.services.odoo import Odoo
 from ticket.services.engine import get_pg_engine
 from ticket.services.db_loader import DbLoader

@@ -1,6 +1,7 @@
 from typing import List
 import strawberry
 
+from ticket.extensions.auth_extension import OrderAllExt
 from .ticket import TicketGql, TicketLineGql
 from .order import OrderGql, OrderLineGql
 from .order_func import OrderFuncGql
@@ -37,6 +38,15 @@ class Mutation:
     delete_order_line: bool = strawberry.mutation(resolver=OrderLineGql.delete_record)
 
     # ORDER AUTH Functions
-    order_now: OrderGql = strawberry.field(resolver=OrderFuncGql.order_now)
-    confirm_order: bool = strawberry.field(resolver=OrderFuncGql.confirm_order)
-    cancel_order: bool = strawberry.field(resolver=OrderFuncGql.cancel_order)
+    order_now: OrderGql = strawberry.field(
+        resolver=OrderFuncGql.order_now,
+        extensions=[OrderAllExt],
+    )
+    confirm_order: bool = strawberry.field(
+        resolver=OrderFuncGql.confirm_order,
+        extensions=[OrderAllExt],
+    )
+    cancel_order: bool = strawberry.field(
+        resolver=OrderFuncGql.cancel_order,
+        extensions=[OrderAllExt],
+    )
