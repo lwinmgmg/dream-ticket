@@ -16,6 +16,8 @@ from .ticket import (
     TicketLineNotReserved,
 )
 
+# pylint: disable=unsubscriptable-object
+
 
 class OrderAlreadyVerifyError(Exception):
     pass
