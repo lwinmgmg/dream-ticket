@@ -7,3 +7,4 @@ poetry.lock
 **/*.pyc
 *__pycache__
 .pytest_cache
+settings.yaml

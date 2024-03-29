@@ -11,6 +11,7 @@ import strawberry
 from strawberry.asgi import GraphQL
 from user_go import user_go_pb2, user_go_pb2_grpc
 
+from env.settings import load_setting_from_env
 from ticket.services.odoo import Odoo
 from ticket.services.engine import get_pg_engine
 from ticket.services.db_loader import DbLoader
@@ -24,7 +25,13 @@ logger.propagate = False
 
 DB_KEY = "db"
 
-odoo = Odoo("http://localhost:8069")
+settings = load_setting_from_env()
+
+odoo = Odoo(
+    settings.services.odoo.url,
+    settings.services.odoo.user,
+    settings.services.odoo.password,
+)
 
 
 class GraphQlContext(GraphQL):
@@ -39,12 +46,14 @@ class GraphQlContext(GraphQL):
         return values[0], values[1]
 
     @classmethod
-    def get_user(cls, token: str) -> str:
-        with grpc.insecure_channel("0.0.0.0:3002") as channel:
+    def get_token(cls, token: str):
+        with grpc.insecure_channel(
+            f"{settings.services.user.grpc.host}:{settings.services.user.grpc.port}"
+        ) as channel:
             stub = user_go_pb2_grpc.UserServiceStub(channel=channel)
             # pylint: disable = no-member
-            response = stub.CheckToken(user_go_pb2.Token(token=token))
-        return response.code
+            response = stub.CheckThirdpartyToken(user_go_pb2.Token(token=token))
+        return response
 
     async def get_context(self, request: Request | WebSocket, response: Response):
         res = await super().get_context(request=request, response=response)
@@ -53,7 +62,10 @@ class GraphQlContext(GraphQL):
         token_type, access_token = self.custom_get_auth(request=request)
         match token_type.lower():
             case "bearer":
-                res["user_code"] = self.get_user(access_token)
+                tkn = self.get_token(access_token)
+                res["user_code"] = tkn.uid
+                res["cid"] = tkn.cid
+                res["scopes"] = tkn.scp
             case "odoo":
                 res["odoo_user"] = await odoo.get_odoo_user(access_token)
         return res
@@ -68,14 +80,19 @@ schema = strawberry.Schema(
 )
 graphql_app = GraphQlContext(schema=schema)
 engine = get_pg_engine(
-    host="localhost", port=5432, user="admin", password="admin", database="ticket"
+    host=settings.services.postgres.db.host,
+    port=settings.services.postgres.db.port,
+    user=settings.services.postgres.db.user,
+    password=settings.services.postgres.db.password,
+    database=settings.services.postgres.db.database,
 )
-
-
-# async def db_load():
-#     async with engine.connect() as conn:
-#         await conn.run_sync(Base.metadata.create_all)
-#         await conn.commit()
+ro_engine = get_pg_engine(
+    host=settings.services.postgres.ro_db.host,
+    port=settings.services.postgres.ro_db.port,
+    user=settings.services.postgres.ro_db.user,
+    password=settings.services.postgres.ro_db.password,
+    database=settings.services.postgres.ro_db.database,
+)
 
 
 @contextlib.asynccontextmanager

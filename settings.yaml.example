@@ -1,0 +1,30 @@
+version: "3.0"
+
+services:
+  odoo:
+    url: localhost:8069
+    user: admin
+    password: admin
+  user:
+    http:
+      url: http://localhost:3000
+      redirect_url: http://localhost:8000/login
+    grpc:
+      host: localhost
+      port: 3002
+    client_id: e2a06558-7da6-44f9-8447-68ff8c750344
+    client_secret: 7MfdTWHEKsLh5GQA8ZuU70TGn-ZTMCY5LllCQ0n5uSc=
+  postgres:
+    db:
+      host: postgres
+      port: 5432
+      user: admin
+      password: admin
+      database: ticket
+    ro_db:
+      host: postgres
+      port: 5432
+      user: admin
+      password: admin
+      database: ticket
+  
